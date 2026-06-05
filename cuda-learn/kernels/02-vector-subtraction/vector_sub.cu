@@ -2,64 +2,72 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// TODO: viết kernel vector subtraction ở đây
-// Công thức: c[i] = a[i] - b[i]
-// Gợi ý: copy từ vector_add.cu, chỉ đổi một ký tự
-__global__ void vector_sub(const float* a, const float* b, float* c, int n) {
-    // TODO
+__global__ void vector_subtract(const float* alpha, const float* beta, float* result, int max_length){
+    //                                                                  ↑ không có const — result là output, cần ghi vào
+    int index = blockIdx.x * blockDim.x + threadIdx.x;
+    //                               ↑ blockDimx → blockDim.x
+
+    if(index < max_length){
+        result[index] = alpha[index] - beta[index];
+    }
 }
 
-#define CUDA_CHECK(call) \
-    do { \
-        cudaError_t err = (call); \
-        if (err != cudaSuccess) { \
-            fprintf(stderr, "CUDA error: %s\n", cudaGetErrorString(err)); \
-            exit(EXIT_FAILURE); \
-        } \
-    } while(0)
+#define CUDA_CHECK(call)                                                    \
+    do {                                                                    \
+        cudaError_t err = (call);                                           \
+        if (err != cudaSuccess) {                                           \
+            fprintf(stderr, "CUDA error at %s:%d — %s\n",                  \
+                    __FILE__, __LINE__, cudaGetErrorString(err));           \
+            exit(EXIT_FAILURE);                                             \
+        }                                                                   \
+    } while (0)
 
 int main() {
-    int n     = 1 << 24;
-    size_t bytes = n * sizeof(float);
+    int max_length = 1 << 24;
+    size_t bytes = max_length * sizeof(float);
 
-    float *h_a = (float*)malloc(bytes);
-    float *h_b = (float*)malloc(bytes);
-    float *h_c = (float*)malloc(bytes);
+    float* host_alpha  = (float*)malloc(bytes);
+    float* host_beta   = (float*)malloc(bytes);
+    float* host_result = (float*)malloc(bytes);
 
-    for (int i = 0; i < n; i++) {
-        h_a[i] = (float)i;
-        h_b[i] = (float)(i / 2);
+    // Fill input data
+    for (int i = 0; i < max_length; i++) {
+        host_alpha[i] = (float)i;
+        host_beta[i]  = (float)(i / 2);
     }
 
-    float *d_a, *d_b, *d_c;
-    CUDA_CHECK(cudaMalloc(&d_a, bytes));
-    CUDA_CHECK(cudaMalloc(&d_b, bytes));
-    CUDA_CHECK(cudaMalloc(&d_c, bytes));
+    float *device_alpha, *device_beta, *device_result;
+    CUDA_CHECK(cudaMalloc(&device_alpha, bytes));
+    CUDA_CHECK(cudaMalloc(&device_beta, bytes));
+    CUDA_CHECK(cudaMalloc(&device_result, bytes));
 
-    CUDA_CHECK(cudaMemcpy(d_a, h_a, bytes, cudaMemcpyHostToDevice));
-    CUDA_CHECK(cudaMemcpy(d_b, h_b, bytes, cudaMemcpyHostToDevice));
+    // Copy CPU to GPU
+    CUDA_CHECK(cudaMemcpy(device_alpha, host_alpha, bytes, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(device_beta, host_beta, bytes, cudaMemcpyHostToDevice));
 
-    int threads = 256;
-    int blocks  = (n + threads - 1) / threads;
-    vector_sub<<<blocks, threads>>>(d_a, d_b, d_c, n);
+    int threads_per_block = 256;
+    int blocks = (max_length + threads_per_block - 1) / threads_per_block;
+
+    vector_subtract<<<blocks, threads_per_block>>>(device_alpha, device_beta, device_result, max_length);
     CUDA_CHECK(cudaGetLastError());
     CUDA_CHECK(cudaDeviceSynchronize());
 
-    CUDA_CHECK(cudaMemcpy(h_c, d_c, bytes, cudaMemcpyDeviceToHost));
+    // Copy GPU → CPU
+    CUDA_CHECK(cudaMemcpy(host_result, device_result, bytes, cudaMemcpyDeviceToHost));
 
-    // Verify: c[i] should equal i - i/2
+    // Verify
     int errors = 0;
-    for (int i = 0; i < n; i++) {
-        float expected = h_a[i] - h_b[i];
-        if (h_c[i] != expected) errors++;
+    for (int i = 0; i < max_length; i++) {
+        if (host_result[i] != host_alpha[i] - host_beta[i]) errors++;
     }
-    printf("n = %d\n", n);
+    printf("n      = %d\n", max_length);
     printf("errors = %d\n", errors);
-    printf("c[0]   = %.0f (expected %.0f)\n", h_c[0],   h_a[0]   - h_b[0]);
-    printf("c[100] = %.0f (expected %.0f)\n", h_c[100], h_a[100] - h_b[100]);
-    printf("c[999] = %.0f (expected %.0f)\n", h_c[999], h_a[999] - h_b[999]);
+    printf("result[0]   = %.0f (expected %.0f)\n", host_result[0],   host_alpha[0]   - host_beta[0]);
+    printf("result[100] = %.0f (expected %.0f)\n", host_result[100], host_alpha[100] - host_beta[100]);
 
-    cudaFree(d_a); cudaFree(d_b); cudaFree(d_c);
-    free(h_a); free(h_b); free(h_c);
+    // Free
+    cudaFree(device_alpha); cudaFree(device_beta); cudaFree(device_result);
+    free(host_alpha); free(host_beta); free(host_result);
+
     return 0;
 }

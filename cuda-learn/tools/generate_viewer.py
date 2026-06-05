@@ -1813,8 +1813,8 @@ const PHASES = [
    sub:'Thread model · first kernels · memory model',topics:[
     {name:'CUDA Kernel Foundations',problems:[
       {t:'Vector Addition',    s:'done',   slug:'vector-addition'},
-      {t:'Vector Subtraction', s:'locked', slug:'vector-subtraction'},
-      {t:'ReLU',               s:'locked', slug:'relu'},
+      {t:'Vector Subtraction', s:'done',   slug:'vector-subtraction'},
+      {t:'ReLU',               s:'done',   slug:'relu'},
       {t:'Sigmoid',            s:'locked', slug:'sigmoid'},
       {t:'Tanh',               s:'locked', slug:'tanh'},
       {t:'Leaky ReLU',         s:'locked', slug:'leaky-relu'},
