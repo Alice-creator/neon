@@ -1529,240 +1529,113 @@ HTML = r"""<!DOCTYPE html>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CUDA × ML Math Roadmap</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
   <style>
-    *{margin:0;padding:0;box-sizing:border-box;}
+    :root {
+      --bg: #0f172a; --surface: #1e293b; --surf2: #263347;
+      --text: #e2e8f0; --muted: #64748b; --border: #334155; --done: #10b981;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-    body{
-      background:#080810;color:#e2e8f0;
-      font-family:'Segoe UI',system-ui,sans-serif;
-      height:100vh;overflow:hidden;
-      display:flex;flex-direction:column;
-    }
+    header { position: sticky; top: 0; z-index: 50; background: rgba(15,23,42,.96); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 14px 28px; flex-shrink: 0; }
+    .hrow { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .htitle { font-size: 1.3rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+    .hsub { font-size: .7rem; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 2px 8px; font-weight: 400; }
+    .hprog { font-size: .82rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .ptrack { height: 4px; background: var(--border); border-radius: 999px; overflow: hidden; }
+    .pfill { height: 100%; width: 0%; background: linear-gradient(90deg,#10b981,#06b6d4,#8b5cf6); border-radius: 999px; transition: width .5s; }
 
-    /* ── TOP BAR ─────────────────── */
-    .topbar{
-      display:flex;align-items:center;gap:20px;
-      padding:12px 24px;border-bottom:1px solid #1e293b;
-      background:#0d1117;flex-shrink:0;
-    }
-    .topbar h1{
-      font-size:1.1rem;font-weight:800;
-      background:linear-gradient(90deg,#76b900,#00c8ff);
-      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-    }
-    .topbar-stats{display:flex;gap:12px;margin-left:auto;}
-    .tstat{
-      font-size:0.72rem;padding:3px 10px;border-radius:6px;
-      background:#0f172a;border:1px solid #1e293b;color:#475569;
-    }
-    .tstat span{font-weight:700;color:#e2e8f0;margin-right:4px;}
+    .app-body { display: flex; flex: 1; overflow: hidden; }
+    #roadmap-scroll { flex: 1; overflow-y: auto; transition: flex 0.3s ease; }
+    .app-body.panel-open #roadmap-scroll { flex: 0 0 54%; }
 
-    /* ── MAIN LAYOUT ─────────────── */
-    .layout{display:flex;flex:1;overflow:hidden;}
+    #wrapper { max-width: 960px; margin: 0 auto; padding: 48px 28px 100px; position: relative; }
+    #lines { position: absolute; top: 0; left: 0; width: 100%; pointer-events: none; overflow: visible; }
 
-    /* ── ROADMAP PANEL ───────────── */
-    #roadmap-pane{
-      flex:1;overflow-y:auto;padding:24px 24px 60px;
-      transition:flex 0.3s ease;
-    }
-    .layout.panel-open #roadmap-pane{flex:0 0 52%;}
+    .section { margin-bottom: 72px; }
+    .phase-node { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 20px 36px; border-radius: 16px; border: 2px solid; margin: 0 auto; max-width: 440px; position: relative; z-index: 2; }
+    .pnum { font-size: .65rem; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 4px; opacity: .7; }
+    .pname { font-size: 1.15rem; font-weight: 700; margin-bottom: 4px; }
+    .psub { font-size: .72rem; opacity: .65; }
+    .pcount { font-size: .72rem; margin-top: 6px; opacity: .5; }
 
-    /* ── LESSON PANEL ────────────── */
-    #lesson-pane{
-      width:0;overflow:hidden;
-      border-left:1px solid #1e293b;
-      background:#0d1117;
-      display:flex;flex-direction:column;
-      transition:width 0.3s ease;
-    }
-    .layout.panel-open #lesson-pane{width:48%;}
+    .topic-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 40px; padding: 0 12px; }
 
-    .lesson-header{
-      display:flex;align-items:center;gap:10px;
-      padding:14px 18px;border-bottom:1px solid #1e293b;
-      flex-shrink:0;
-    }
-    .lesson-header-info{flex:1;min-width:0;}
-    .lesson-header h2{font-size:0.9rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .lesson-section-badge{
-      font-size:0.65rem;padding:2px 8px;border-radius:4px;
-      background:#1e293b;color:#64748b;margin-top:3px;display:inline-block;
-    }
-    .close-btn{
-      background:none;border:none;color:#475569;cursor:pointer;
-      font-size:1.1rem;padding:4px 8px;border-radius:4px;flex-shrink:0;
-    }
-    .close-btn:hover{background:#1e293b;color:#e2e8f0;}
+    .topic { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 9px 14px; font-size: .81rem; font-weight: 500; user-select: none; position: relative; z-index: 2; transition: background .15s, transform .15s, box-shadow .15s, border-color .2s; }
+    .topic.has-lesson { cursor: pointer; }
+    .topic.has-lesson:hover { background: var(--surf2); transform: translateY(-2px); box-shadow: 0 5px 18px rgba(0,0,0,.4); }
+    .topic.done { border-color: rgba(16,185,129,.45); background: rgba(16,185,129,.07); color: var(--muted); text-decoration: line-through; text-decoration-color: rgba(16,185,129,.5); }
+    .topic.selected { outline: 2px solid #60a5fa; outline-offset: 2px; }
+    .topic.pop { animation: pop .25s ease; }
+    @keyframes pop { 0%{transform:scale(1)} 45%{transform:scale(1.08)} 100%{transform:scale(1)} }
+    .dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 9px; color: transparent; flex-shrink: 0; transition: all .2s; cursor: pointer; }
+    .dot:hover { border-color: var(--done); }
+    .topic.done .dot { background: var(--done); border-color: var(--done); color: #fff; }
 
-    /* ── TABS ────────────────────── */
-    .tabs{display:flex;border-bottom:1px solid #1e293b;flex-shrink:0;}
-    .tab{
-      padding:10px 18px;font-size:0.8rem;font-weight:600;
-      cursor:pointer;color:#475569;border-bottom:2px solid transparent;
-      transition:color .15s;
-    }
-    .tab:hover{color:#94a3b8;}
-    .tab.active{color:#60a5fa;border-bottom-color:#60a5fa;}
-    .tab-link{
-      margin-left:auto;padding:10px 14px;
-      font-size:0.75rem;color:#334155;text-decoration:none;
-    }
-    .tab-link:hover{color:#60a5fa;}
+    .reset-btn { display: block; margin: 24px auto 0; padding: 8px 22px; background: transparent; border: 1px solid var(--border); border-radius: 6px; color: var(--muted); font-size: .78rem; cursor: pointer; transition: all .2s; }
+    .reset-btn:hover { border-color: #ef4444; color: #ef4444; }
 
-    /* ── TAB CONTENT ─────────────── */
-    .tab-content{flex:1;overflow-y:auto;display:none;}
-    .tab-content.active{display:block;}
+    #lesson-pane { width: 0; overflow: hidden; border-left: 1px solid var(--border); background: #0d1117; display: flex; flex-direction: column; transition: width 0.3s ease; flex-shrink: 0; }
+    .app-body.panel-open #lesson-pane { width: 46%; }
+    .lesson-header { display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .lesson-header-info { flex: 1; min-width: 0; }
+    .lesson-header h2 { font-size: .9rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lesson-section-badge { font-size: .65rem; padding: 2px 8px; border-radius: 4px; background: var(--surface); color: var(--muted); margin-top: 3px; display: inline-block; }
+    .close-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.1rem; padding: 4px 8px; border-radius: 4px; flex-shrink: 0; }
+    .close-btn:hover { background: var(--surface); color: var(--text); }
 
-    /* Theory */
-    .theory-body{padding:18px;font-size:0.82rem;line-height:1.75;color:#94a3b8;}
-    .theory-body p{margin-bottom:10px;}
-    .def-box{background:#0f172a;border-left:3px solid #60a5fa;padding:10px 14px;border-radius:4px;margin:10px 0;font-size:0.8rem;}
-    .ex-box{background:#0f172a;border-left:3px solid #4ade80;padding:10px 14px;border-radius:4px;margin:10px 0;font-size:0.8rem;}
-    .section-hdr{color:#e2e8f0;font-weight:700;font-size:0.85rem;margin:14px 0 6px;}
-    .formula{font-family:monospace;background:#060609;padding:2px 6px;border-radius:3px;color:#fbbf24;font-size:0.8rem;}
-    .theory-body strong{color:#cbd5e1;}
-    .theory-title{
-      font-size:1rem;font-weight:700;color:#e2e8f0;
-      margin-bottom:14px;padding-bottom:10px;
-      border-bottom:1px solid #1e293b;
-    }
-    .theory-topic{
-      font-size:0.68rem;font-weight:600;text-transform:uppercase;
-      letter-spacing:.08em;color:#334155;margin-bottom:14px;
-    }
+    .tabs { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+    .tab { padding: 10px 18px; font-size: .8rem; font-weight: 600; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; transition: color .15s; }
+    .tab:hover { color: #94a3b8; }
+    .tab.active { color: #60a5fa; border-bottom-color: #60a5fa; }
+    .tab-link { margin-left: auto; padding: 10px 14px; font-size: .75rem; color: var(--border); text-decoration: none; }
+    .tab-link:hover { color: #60a5fa; }
+    .tab-content { flex: 1; overflow-y: auto; display: none; }
+    .tab-content.active { display: block; }
 
-    /* Code */
-    .code-pane{padding:14px;display:flex;flex-direction:column;gap:10px;}
-    .code-toolbar{
-      display:flex;align-items:center;gap:8px;
-    }
-    .code-filename{
-      font-size:0.72rem;color:#475569;font-family:monospace;
-      background:#0f172a;padding:4px 10px;border-radius:4px;
-      border:1px solid #1e293b;
-    }
-    .copy-btn{
-      margin-left:auto;
-      background:#1e293b;border:1px solid #334155;
-      color:#94a3b8;font-size:0.72rem;padding:4px 12px;
-      border-radius:4px;cursor:pointer;
-    }
-    .copy-btn:hover{background:#334155;color:#e2e8f0;}
-    .copy-btn.copied{background:#14532d33;color:#4ade80;border-color:#166534;}
+    .theory-body { padding: 18px; font-size: .82rem; line-height: 1.75; color: #94a3b8; }
+    .theory-body p { margin-bottom: 10px; }
+    .def-box { background: var(--bg); border-left: 3px solid #60a5fa; padding: 10px 14px; border-radius: 4px; margin: 10px 0; font-size: .8rem; }
+    .ex-box  { background: var(--bg); border-left: 3px solid #4ade80; padding: 10px 14px; border-radius: 4px; margin: 10px 0; font-size: .8rem; }
+    .section-hdr { color: var(--text); font-weight: 700; font-size: .85rem; margin: 14px 0 6px; }
+    .theory-body strong { color: #cbd5e1; }
+    .theory-title { font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+    .theory-topic { font-size: .68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--border); margin-bottom: 14px; }
 
-    pre{
-      background:#060609;border:1px solid #1e293b;border-radius:8px;
-      padding:16px;overflow-x:auto;font-size:0.75rem;line-height:1.6;
-      font-family:'Cascadia Code','Fira Code','Courier New',monospace;
-      color:#94a3b8;white-space:pre;
-    }
-
-    /* Syntax highlight */
-    .kw{color:#c792ea;}   /* keywords */
-    .ty{color:#82aaff;}   /* types */
-    .fn{color:#82aaff;}   /* function names */
-    .cm{color:#546e7a;font-style:italic;} /* comments */
-    .st{color:#c3e88d;}   /* strings */
-    .nu{color:#f78c6c;}   /* numbers */
-    .pp{color:#c792ea;}   /* preprocessor */
-    .deco{color:#ffcb6b;} /* __global__ etc */
-
-    /* Done button */
-    .lesson-footer{
-      padding:12px 18px;border-top:1px solid #1e293b;
-      display:flex;gap:10px;align-items:center;flex-shrink:0;
-    }
-    .done-btn{
-      flex:1;padding:8px;border-radius:8px;font-size:0.8rem;font-weight:600;
-      cursor:pointer;border:1px solid #166534;
-      background:#14532d33;color:#4ade80;
-      transition:background .15s;
-    }
-    .done-btn:hover{background:#14532d66;}
-    .done-btn.already-done{background:#14532d;color:#4ade80;cursor:default;}
-
-    /* ── ROADMAP STYLES ──────────── */
-    .page-sub{color:#64748b;font-size:0.75rem;margin-top:4px;}
-    .timeline{position:relative;padding-left:44px;max-width:820px;margin:0 auto;}
-    .timeline::before{
-      content:'';position:absolute;left:18px;top:0;bottom:0;
-      width:2px;background:#1e293b;
-    }
-    .phase{position:relative;margin-bottom:24px;}
-    .phase-dot{
-      position:absolute;left:-34px;top:16px;
-      width:20px;height:20px;border-radius:50%;
-      display:flex;align-items:center;justify-content:center;
-      font-size:0.6rem;font-weight:800;border:2px solid;background:#080810;z-index:1;
-    }
-    .phase-card{border:1px solid #1e293b;border-left-width:3px;border-radius:10px;overflow:hidden;background:#0d1117;}
-    .phase-header{
-      display:flex;align-items:center;gap:10px;
-      padding:12px 16px;cursor:pointer;user-select:none;
-    }
-    .phase-header:hover{background:#ffffff05;}
-    .phase-title{flex:1;font-size:0.88rem;font-weight:700;}
-    .phase-sub{font-size:0.7rem;font-weight:400;color:#64748b;margin-top:2px;}
-    .phase-badge{font-size:0.63rem;padding:2px 8px;border-radius:999px;font-weight:600;
-                 text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;}
-    .badge-done{background:#14532d33;color:#4ade80;border:1px solid #166534;}
-    .badge-active{background:#1e3a5f33;color:#60a5fa;border:1px solid #1d4ed8;}
-    .badge-locked{background:#1e293b44;color:#64748b;border:1px solid #334155;}
-    .phase-count{font-size:0.68rem;color:#475569;white-space:nowrap;}
-    .chevron{color:#475569;font-size:0.75rem;transition:transform .2s;}
-    .phase.open .chevron{transform:rotate(180deg);}
-    .phase-body{display:none;padding:0 16px 14px;}
-    .phase.open .phase-body{display:block;}
-    .topic-group{margin-top:12px;}
-    .topic-label{
-      font-size:0.63rem;font-weight:600;text-transform:uppercase;
-      letter-spacing:.08em;color:#475569;margin-bottom:7px;
-      display:flex;align-items:center;gap:8px;
-    }
-    .topic-label::after{content:'';flex:1;height:1px;background:#1e293b;}
-    .chips{display:flex;flex-wrap:wrap;gap:6px;}
-    .chip{
-      display:inline-flex;align-items:center;gap:4px;
-      padding:4px 10px;border-radius:5px;font-size:0.72rem;font-weight:500;
-      border:1px solid;cursor:pointer;transition:all .15s;user-select:none;
-    }
-    .chip-done{background:#14532d33;color:#4ade80;border-color:#166534;}
-    .chip-active{background:#1e3a5f33;color:#60a5fa;border-color:#1d4ed8;}
-    .chip-locked{background:#0f172a;color:#64748b;border-color:#334155;}
-    .chip-done:hover,.chip-active:hover{filter:brightness(1.2);transform:translateY(-1px);}
-    .chip-locked:hover{border-color:#60a5fa;color:#94a3b8;transform:translateY(-1px);}
-    .chip.selected{outline:2px solid currentColor;outline-offset:1px;}
-    .chip-icon{font-size:0.65rem;}
-
-    /* Color themes */
-    .t-green{border-left-color:#16a34a;} .dot-green{color:#4ade80;border-color:#16a34a;} .title-green{color:#4ade80;}
-    .t-blue{border-left-color:#2563eb;}  .dot-blue{color:#60a5fa;border-color:#2563eb;}  .title-blue{color:#60a5fa;}
-    .t-purple{border-left-color:#7c3aed;}.dot-purple{color:#a78bfa;border-color:#7c3aed;}.title-purple{color:#a78bfa;}
-    .t-teal{border-left-color:#0f766e;}  .dot-teal{color:#2dd4bf;border-color:#0f766e;}  .title-teal{color:#2dd4bf;}
-    .t-orange{border-left-color:#ea580c;}.dot-orange{color:#fb923c;border-color:#ea580c;}.title-orange{color:#fb923c;}
-    .t-pink{border-left-color:#be185d;}  .dot-pink{color:#f472b6;border-color:#be185d;}  .title-pink{color:#f472b6;}
-    .t-yellow{border-left-color:#ca8a04;}.dot-yellow{color:#fbbf24;border-color:#ca8a04;}.title-yellow{color:#fbbf24;}
-    .t-cyan{border-left-color:#0891b2;}  .dot-cyan{color:#22d3ee;border-color:#0891b2;}  .title-cyan{color:#22d3ee;}
+    .code-pane { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .code-toolbar { display: flex; align-items: center; gap: 8px; }
+    .code-filename { font-size: .72rem; color: var(--muted); font-family: monospace; background: var(--bg); padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border); }
+    .copy-btn { margin-left: auto; background: var(--surface); border: 1px solid var(--border); color: #94a3b8; font-size: .72rem; padding: 4px 12px; border-radius: 4px; cursor: pointer; }
+    .copy-btn:hover { background: var(--border); color: var(--text); }
+    .copy-btn.copied { background: #14532d33; color: #4ade80; border-color: #166534; }
+    pre { background: #060609; border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; font-size: .75rem; line-height: 1.6; font-family: 'Cascadia Code','Fira Code',monospace; color: #94a3b8; white-space: pre; }
+    .kw{color:#c792ea;} .ty{color:#82aaff;} .fn{color:#82aaff;} .cm{color:#546e7a;font-style:italic;} .nu{color:#f78c6c;} .pp{color:#c792ea;} .deco{color:#ffcb6b;}
+    .lesson-footer { padding: 12px 18px; border-top: 1px solid var(--border); display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
+    .done-btn { flex: 1; padding: 8px; border-radius: 8px; font-size: .8rem; font-weight: 600; cursor: pointer; border: 1px solid #166534; background: #14532d33; color: #4ade80; transition: background .15s; }
+    .done-btn:hover { background: #14532d66; }
+    .done-btn.already-done { background: #14532d; color: #4ade80; cursor: default; }
+    #viz-canvas { width: 100%; max-height: 220px; display: none; border-bottom: 1px solid var(--border); background: #0a0a0f; }
   </style>
 </head>
 <body>
 
-<div class="topbar">
-  <h1>CUDA × ML Math</h1>
-  <div class="page-sub">RTX 3060 · CUDA 12.8 · Click any chip to open lesson</div>
-  <div class="topbar-stats">
-    <div class="tstat"><span id="cnt-done">1</span>Done</div>
-    <div class="tstat"><span id="cnt-locked">–</span>Locked</div>
-    <div class="tstat"><span id="cnt-total">–</span>Total</div>
+<header>
+  <div class="hrow">
+    <div class="htitle">⚡ CUDA × ML Math <span class="hsub">RTX 3060 · CUDA 12.8</span></div>
+    <span class="hprog" id="prog-text">0 / 0 completed</span>
   </div>
-</div>
+  <div class="ptrack"><div class="pfill" id="prog-fill"></div></div>
+</header>
 
-<div class="layout" id="layout">
-  <div id="roadmap-pane">
-    <div class="timeline" id="timeline"></div>
+<div class="app-body" id="app-body">
+  <div id="roadmap-scroll">
+    <div id="wrapper">
+      <svg id="lines"></svg>
+      <div id="graph"></div>
+    </div>
   </div>
 
-  <!-- LESSON PANEL -->
   <div id="lesson-pane">
     <div class="lesson-header">
       <div class="lesson-header-info">
@@ -1771,22 +1644,19 @@ HTML = r"""<!DOCTYPE html>
       </div>
       <button class="close-btn" onclick="closePanel()">✕</button>
     </div>
-
     <div class="tabs">
       <div class="tab active" onclick="switchTab('theory')">📖 Theory</div>
       <div class="tab" onclick="switchTab('code')">⚙️ CUDA Kernel</div>
       <a id="lp-link" href="#" target="_blank" class="tab-link">↗ tensortonic</a>
     </div>
-
     <div id="tab-theory" class="tab-content active">
-      <canvas id="viz-canvas" width="480" height="220" style="width:100%;max-height:220px;display:none;border-bottom:1px solid #1e293b;background:#0a0a0f;"></canvas>
+      <canvas id="viz-canvas" width="480" height="220"></canvas>
       <div class="theory-body">
         <div class="theory-topic" id="lp-topic"></div>
         <div class="theory-title" id="lp-theory-title"></div>
         <div id="lp-description"></div>
       </div>
     </div>
-
     <div id="tab-code" class="tab-content">
       <div class="code-pane">
         <div class="code-toolbar">
@@ -1796,7 +1666,6 @@ HTML = r"""<!DOCTYPE html>
         <pre id="lp-code"></pre>
       </div>
     </div>
-
     <div class="lesson-footer">
       <button class="done-btn" id="done-btn" onclick="markDone()">✓ Mark as Done</button>
     </div>
@@ -1806,108 +1675,98 @@ HTML = r"""<!DOCTYPE html>
 <script>
 LESSONS_PLACEHOLDER
 
-// ── Roadmap data ─────────────────────────────────────────────────────────────
-const ICONS = {done:'✓', active:'→', locked:'·'};
 const PHASES = [
-  {n:1,title:'GPU Foundations',color:'green',status:'active',
-   sub:'Thread model · first kernels · memory model',topics:[
-    {name:'CUDA Kernel Foundations',problems:[
-      {t:'Vector Addition',    s:'done',   slug:'vector-addition'},
-      {t:'Vector Subtraction', s:'done',   slug:'vector-subtraction'},
-      {t:'ReLU',               s:'done',   slug:'relu'},
-      {t:'Sigmoid',            s:'locked', slug:'sigmoid'},
-      {t:'Tanh',               s:'locked', slug:'tanh'},
-      {t:'Leaky ReLU',         s:'locked', slug:'leaky-relu'},
-      {t:'GELU',               s:'locked', slug:'gelu'},
-      {t:'Swish',              s:'locked', slug:'swish'},
+  {n:1, title:'GPU Foundations', color:'#10b981', sub:'Thread model · first kernels · memory model', topics:[
+    {name:'CUDA Kernel Foundations', problems:[
+      {t:'Vector Addition',    s:'done', slug:'vector-addition'},
+      {t:'Vector Subtraction', s:'done', slug:'vector-subtraction'},
+      {t:'ReLU',               s:'done', slug:'relu'},
+      {t:'Sigmoid',            s:'done', slug:'sigmoid'},
+      {t:'Tanh',               s:'done', slug:'tanh'},
+      {t:'Leaky ReLU',         s:'done', slug:'leaky-relu'},
+      {t:'GELU',               s:'done', slug:'gelu'},
+      {t:'Swish',              s:'done', slug:'swish'},
     ]},
-    {name:'CUDA Concepts',problems:[
+    {name:'CUDA Concepts', problems:[
       {t:'Thread / Block / Grid', s:'done',   slug:null},
       {t:'2D / 3D Index Formula', s:'locked', slug:null},
       {t:'Memory Coalescing',     s:'locked', slug:null},
       {t:'Shared Memory',         s:'locked', slug:null},
     ]},
   ]},
-  {n:2,title:'Statistics on GPU',color:'blue',status:'locked',
-   sub:'Parallel reduction → statistical kernels',topics:[
-    {name:'Descriptive Statistics',problems:[
+  {n:2, title:'Statistics on GPU', color:'#3b82f6', sub:'Parallel reduction → statistical kernels', topics:[
+    {name:'Descriptive Statistics', problems:[
       {t:'Calculate Mean',        s:'locked', slug:'calculate-mean'},
       {t:'Calculate Variance',    s:'locked', slug:'calculate-variance-std'},
       {t:'Population vs Sample',  s:'locked', slug:'population-sample-stats'},
     ]},
-    {name:'Sampling & Inference',problems:[
+    {name:'Sampling & Inference', problems:[
       {t:'Standard Error',        s:'locked', slug:'standard-error-calculation'},
       {t:'Central Limit Theorem', s:'locked', slug:'clt-simulation'},
       {t:'Confidence Intervals',  s:'locked', slug:'ci-mean-known-sigma'},
     ]},
-    {name:'Hypothesis Testing',problems:[
+    {name:'Hypothesis Testing', problems:[
       {t:'Hypothesis Setup',      s:'locked', slug:'hypothesis-setup'},
       {t:'P-Value from Z',        s:'locked', slug:'p-value-from-z'},
       {t:'T-Test Statistic',      s:'locked', slug:'t-test-statistic'},
       {t:'A/B Test Setup',        s:'locked', slug:'ab-test-setup'},
     ]},
-    {name:'Correlation & MLE',problems:[
+    {name:'Correlation & MLE', problems:[
       {t:'Pearson Correlation',   s:'locked', slug:'pearson-correlation'},
       {t:'MLE Bernoulli',         s:'locked', slug:'mle-bernoulli'},
     ]},
   ]},
-  {n:3,title:'Linear Algebra on GPU',color:'purple',status:'locked',
-   sub:'Matrix kernels · decompositions · geometric ops',topics:[
-    {name:'Matrix Operations',problems:[
+  {n:3, title:'Linear Algebra on GPU', color:'#8b5cf6', sub:'Matrix kernels · decompositions · geometric ops', topics:[
+    {name:'Matrix Operations', problems:[
       {t:'Matrix Multiplication', s:'locked', slug:'matrix-multiplication'},
       {t:'Vector Norms',          s:'locked', slug:'vector-norms'},
       {t:'Gram-Schmidt',          s:'locked', slug:'gram-schmidt'},
     ]},
-    {name:'Decompositions',problems:[
+    {name:'Decompositions', problems:[
       {t:'Eigenvalue Analysis',   s:'locked', slug:'eigenvalue-analysis'},
       {t:'SVD Decomposition',     s:'locked', slug:'svd-decomposition'},
       {t:'PCA from Scratch',      s:'locked', slug:'pca-from-scratch'},
     ]},
   ]},
-  {n:4,title:'Probability on GPU',color:'teal',status:'locked',
-   sub:'Sampling · Monte Carlo · Bayesian kernels',topics:[
-    {name:'Probability Kernels',problems:[
-      {t:'Conditional Probability',     s:'locked', slug:'conditional-probability'},
-      {t:'PMF / PDF / CDF',             s:'locked', slug:'pmf-pdf-cdf'},
-      {t:'Expected Value & Variance',   s:'locked', slug:'expected-value-variance'},
-      {t:'Bayes Theorem',               s:'locked', slug:'bayes-theorem'},
-      {t:'Monte Carlo Pi',              s:'locked', slug:'monte-carlo-pi'},
+  {n:4, title:'Probability on GPU', color:'#14b8a6', sub:'Sampling · Monte Carlo · Bayesian kernels', topics:[
+    {name:'Probability Kernels', problems:[
+      {t:'Conditional Probability',   s:'locked', slug:'conditional-probability'},
+      {t:'PMF / PDF / CDF',           s:'locked', slug:'pmf-pdf-cdf'},
+      {t:'Expected Value & Variance', s:'locked', slug:'expected-value-variance'},
+      {t:'Bayes Theorem',             s:'locked', slug:'bayes-theorem'},
+      {t:'Monte Carlo Pi',            s:'locked', slug:'monte-carlo-pi'},
     ]},
   ]},
-  {n:5,title:'Calculus & Autograd',color:'orange',status:'locked',
-   sub:'Gradients · backprop · numerical differentiation',topics:[
-    {name:'Calculus Kernels',problems:[
-      {t:'Numerical Limits',      s:'locked', slug:'numerical-limits'},
-      {t:'Gradient Computation',  s:'locked', slug:'gradient-computation'},
-      {t:'Chain Rule Backprop',   s:'locked', slug:'chain-rule-backprop'},
-      {t:'Hessian Computation',   s:'locked', slug:'hessian-computation'},
-      {t:'Taylor Approximation',  s:'locked', slug:'taylor-approximation'},
-      {t:'Manual Backprop',       s:'locked', slug:'manual-backprop'},
+  {n:5, title:'Calculus & Autograd', color:'#f97316', sub:'Gradients · backprop · numerical differentiation', topics:[
+    {name:'Calculus Kernels', problems:[
+      {t:'Numerical Limits',     s:'locked', slug:'numerical-limits'},
+      {t:'Gradient Computation', s:'locked', slug:'gradient-computation'},
+      {t:'Chain Rule Backprop',  s:'locked', slug:'chain-rule-backprop'},
+      {t:'Hessian Computation',  s:'locked', slug:'hessian-computation'},
+      {t:'Taylor Approximation', s:'locked', slug:'taylor-approximation'},
+      {t:'Manual Backprop',      s:'locked', slug:'manual-backprop'},
     ]},
   ]},
-  {n:6,title:'Optimization on GPU',color:'pink',status:'locked',
-   sub:'SGD · Adam · regularization kernels',topics:[
-    {name:'Optimizer Kernels',problems:[
-      {t:'Convexity Check',       s:'locked', slug:'convexity-check'},
-      {t:'SGD Mini-Batch',        s:'locked', slug:'sgd-minibatch'},
-      {t:'Momentum Optimizer',    s:'locked', slug:'momentum-optimizer'},
-      {t:'Adam Optimizer',        s:'locked', slug:'adam-implementation'},
-      {t:'L1/L2 Regularization',  s:'locked', slug:'l1-l2-regularization'},
+  {n:6, title:'Optimization on GPU', color:'#ec4899', sub:'SGD · Adam · regularization kernels', topics:[
+    {name:'Optimizer Kernels', problems:[
+      {t:'Convexity Check',      s:'locked', slug:'convexity-check'},
+      {t:'SGD Mini-Batch',       s:'locked', slug:'sgd-minibatch'},
+      {t:'Momentum Optimizer',   s:'locked', slug:'momentum-optimizer'},
+      {t:'Adam Optimizer',       s:'locked', slug:'adam-implementation'},
+      {t:'L1/L2 Regularization', s:'locked', slug:'l1-l2-regularization'},
     ]},
   ]},
-  {n:7,title:'Information Theory on GPU',color:'yellow',status:'locked',
-   sub:'Entropy · KL divergence · mutual information',topics:[
-    {name:'Information Theory Kernels',problems:[
-      {t:'Shannon Entropy',       s:'locked', slug:'shannon-entropy'},
-      {t:'Cross-Entropy',         s:'locked', slug:'cross-entropy-implementation'},
-      {t:'KL Divergence',         s:'locked', slug:'kl-divergence'},
-      {t:'Mutual Information',    s:'locked', slug:'mutual-information'},
-      {t:'Information Gain',      s:'locked', slug:'information-gain'},
+  {n:7, title:'Information Theory on GPU', color:'#eab308', sub:'Entropy · KL divergence · mutual information', topics:[
+    {name:'Information Theory Kernels', problems:[
+      {t:'Shannon Entropy',   s:'locked', slug:'shannon-entropy'},
+      {t:'Cross-Entropy',     s:'locked', slug:'cross-entropy-implementation'},
+      {t:'KL Divergence',     s:'locked', slug:'kl-divergence'},
+      {t:'Mutual Information',s:'locked', slug:'mutual-information'},
+      {t:'Information Gain',  s:'locked', slug:'information-gain'},
     ]},
   ]},
-  {n:8,title:'Performance & Profiling',color:'cyan',status:'locked',
-   sub:'Tiling · shared memory · ncu · occupancy',topics:[
-    {name:'Performance',problems:[
+  {n:8, title:'Performance & Profiling', color:'#06b6d4', sub:'Tiling · shared memory · ncu · occupancy', topics:[
+    {name:'Performance', problems:[
       {t:'Tiled Matrix Multiplication', s:'locked', slug:null},
       {t:'Warp Divergence Analysis',    s:'locked', slug:null},
       {t:'Memory Access Patterns',      s:'locked', slug:null},
@@ -1916,178 +1775,240 @@ const PHASES = [
   ]},
 ];
 
-// ── State ────────────────────────────────────────────────────────────────────
-const DONE_KEY = 'cuda_done_slugs';
-function getDone() { try { return new Set(JSON.parse(localStorage.getItem(DONE_KEY)||'[]')); } catch{return new Set();} }
-function saveDone(s) { localStorage.setItem(DONE_KEY, JSON.stringify([...s])); }
+const KEY = 'cuda-roadmap-v2';
+let saved = {};
+try { saved = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch {}
+if (!localStorage.getItem(KEY)) {
+  PHASES.forEach(ph => ph.topics.forEach(tg => tg.problems.forEach(p => {
+    if (p.s === 'done') saved[p.slug || p.t] = true;
+  })));
+}
+const persist = () => localStorage.setItem(KEY, JSON.stringify(saved));
 
-let done = getDone();
 let currentSlug = null;
 let currentChipEl = null;
 
-// ── Render roadmap ───────────────────────────────────────────────────────────
-function chipStatus(p) {
-  if (done.has(p.slug)) return 'done';
-  return p.s;
+function updateProgress() {
+  const allP = PHASES.flatMap(p => p.topics.flatMap(t => t.problems));
+  const total = allP.length;
+  const doneCount = allP.filter(p => saved[p.slug || p.t]).length;
+  document.getElementById('prog-text').textContent = `${doneCount} / ${total} completed`;
+  document.getElementById('prog-fill').style.width = (total ? doneCount/total*100 : 0) + '%';
+  PHASES.forEach(p => {
+    const problems = p.topics.flatMap(t => t.problems);
+    const n = problems.filter(prob => saved[prob.slug || prob.t]).length;
+    const el = document.getElementById(`cnt-${p.n}`);
+    if (el) el.textContent = `${n} / ${problems.length}`;
+  });
 }
 
-function renderRoadmap() {
-  const timeline = document.getElementById('timeline');
-  timeline.innerHTML = '';
-  let total = 0, totalLocked = 0;
+function toggleDone(key, chipEl) {
+  saved[key] = !saved[key];
+  chipEl.classList.toggle('done', !!saved[key]);
+  chipEl.classList.remove('pop');
+  void chipEl.offsetWidth;
+  chipEl.classList.add('pop');
+  persist();
+  updateProgress();
+}
 
-  PHASES.forEach(ph => {
-    const allP = ph.topics.flatMap(t => t.problems);
-    total += allP.filter(p => p.slug).length;
-    totalLocked += allP.filter(p => p.slug && !done.has(p.slug) && p.s === 'locked').length;
+function render() {
+  const graph = document.getElementById('graph');
+  graph.innerHTML = '';
 
-    const div = document.createElement('div');
-    div.className = 'phase';
-    if (ph.status !== 'locked') div.classList.add('open');
+  PHASES.forEach(p => {
+    const allProblems = p.topics.flatMap(t => t.problems);
+    const sec = document.createElement('div');
+    sec.className = 'section';
 
-    const topicsHtml = ph.topics.map(topic => `
-      <div class="topic-group">
-        <div class="topic-label">${topic.name}</div>
-        <div class="chips">
-          ${topic.problems.map(p => {
-            const s = chipStatus(p);
-            const hasLesson = p.slug && LESSONS[p.slug];
-            const clickable = hasLesson ? `onclick="openLesson('${p.slug}', this)"` : '';
-            const title = hasLesson ? `title="${p.t} — click to open lesson"` : '';
-            return `<span class="chip chip-${s}${p.slug===currentSlug?' selected':''}"
-                         data-slug="${p.slug||''}" ${clickable} ${title}>
-              <span class="chip-icon">${ICONS[s]}</span>${p.t}
-            </span>`;
-          }).join('')}
-        </div>
-      </div>
-    `).join('');
+    const pNode = document.createElement('div');
+    pNode.className = 'phase-node';
+    pNode.id = `pn-${p.n}`;
+    pNode.style.borderColor = p.color + '55';
+    pNode.style.background  = p.color + '0e';
+    pNode.innerHTML = `
+      <div class="pnum" style="color:${p.color}">Phase ${p.n}</div>
+      <div class="pname">${p.title}</div>
+      <div class="psub" style="color:${p.color}99">${p.sub}</div>
+      <div class="pcount" id="cnt-${p.n}">0 / ${allProblems.length}</div>`;
+    sec.appendChild(pNode);
 
-    div.innerHTML = `
-      <div class="phase-dot dot-${ph.color}">${ph.n}</div>
-      <div class="phase-card t-${ph.color}">
-        <div class="phase-header" onclick="this.closest('.phase').classList.toggle('open')">
-          <div>
-            <div class="phase-title title-${ph.color}">${ph.title}</div>
-            <div class="phase-sub">${ph.sub}</div>
-          </div>
-          <span class="phase-count">${allP.filter(p=>p.slug).length} kernels</span>
-          <span class="phase-badge badge-${ph.status}">${
-            ph.status==='active'?'● Active':ph.status==='done'?'✓ Done':'Locked'
-          }</span>
-          <span class="chevron">▼</span>
-        </div>
-        <div class="phase-body">${topicsHtml}</div>
-      </div>`;
-    timeline.appendChild(div);
+    const row = document.createElement('div');
+    row.className = 'topic-row';
+    row.id = `tr-${p.n}`;
+
+    allProblems.forEach((prob, i) => {
+      const key = prob.slug || prob.t;
+      const isDone = !!saved[key];
+      const hasLesson = !!(prob.slug && LESSONS[prob.slug]);
+
+      const el = document.createElement('div');
+      el.className = 'topic' + (isDone ? ' done' : '') + (hasLesson ? ' has-lesson' : '');
+      el.id = `tn-${p.n}-${i}`;
+      el.dataset.key = key;
+      el.dataset.slug = prob.slug || '';
+      el.innerHTML = `<div class="dot">✓</div><span>${prob.t}</span>`;
+
+      el.querySelector('.dot').addEventListener('click', e => {
+        e.stopPropagation();
+        toggleDone(key, el);
+      });
+      if (hasLesson) {
+        el.addEventListener('click', () => openLesson(prob.slug, el));
+      }
+
+      row.appendChild(el);
+    });
+
+    sec.appendChild(row);
+    graph.appendChild(sec);
   });
 
-  document.getElementById('cnt-total').textContent  = total;
-  document.getElementById('cnt-locked').textContent = totalLocked;
-  document.getElementById('cnt-done').textContent   = done.size;
+  const btn = document.createElement('button');
+  btn.className = 'reset-btn';
+  btn.textContent = '↺ Reset Progress';
+  btn.addEventListener('click', () => {
+    if (!confirm('Reset all progress?')) return;
+    saved = {};
+    PHASES.forEach(ph => ph.topics.forEach(tg => tg.problems.forEach(p => {
+      if (p.s === 'done') saved[p.slug || p.t] = true;
+    })));
+    persist();
+    document.querySelectorAll('.topic').forEach(el =>
+      el.classList.toggle('done', !!saved[el.dataset.key]));
+    updateProgress();
+    drawLines();
+  });
+  graph.appendChild(btn);
 }
 
-// ── Syntax highlight ─────────────────────────────────────────────────────────
+function drawLines() {
+  const svg     = document.getElementById('lines');
+  const wrapper = document.getElementById('wrapper');
+  svg.innerHTML = '';
+
+  const wRect = wrapper.getBoundingClientRect();
+
+  function rr(el) {
+    const r = el.getBoundingClientRect();
+    return {
+      top:    r.top    - wRect.top,
+      bottom: r.bottom - wRect.top,
+      cx:    (r.left + r.right) / 2 - wRect.left,
+    };
+  }
+
+  function line(x1,y1,x2,y2,stroke,sw,dash) {
+    const el = document.createElementNS('http://www.w3.org/2000/svg','line');
+    el.setAttribute('x1',x1); el.setAttribute('y1',y1);
+    el.setAttribute('x2',x2); el.setAttribute('y2',y2);
+    el.setAttribute('stroke',stroke); el.setAttribute('stroke-width',sw||2);
+    if (dash) el.setAttribute('stroke-dasharray',dash);
+    svg.appendChild(el);
+  }
+
+  function bezier(x1,y1,x2,y2,stroke,sw) {
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    const my = (y1+y2)/2;
+    path.setAttribute('d',`M ${x1} ${y1} C ${x1} ${my}, ${x2} ${my}, ${x2} ${y2}`);
+    path.setAttribute('fill','none');
+    path.setAttribute('stroke',stroke);
+    path.setAttribute('stroke-width',sw||1.5);
+    svg.appendChild(path);
+  }
+
+  PHASES.forEach((p, pi) => {
+    const phaseEl = document.getElementById(`pn-${p.n}`);
+    const rowEl   = document.getElementById(`tr-${p.n}`);
+    if (!phaseEl || !rowEl) return;
+
+    const pR = rr(phaseEl);
+    const junctionY = pR.bottom + 18;
+    line(pR.cx, pR.bottom, pR.cx, junctionY, p.color + '55', 2);
+
+    rowEl.querySelectorAll('.topic').forEach(topic => {
+      const tR = rr(topic);
+      bezier(pR.cx, junctionY, tR.cx, tR.top, p.color + '45', 1.5);
+    });
+
+    if (pi < PHASES.length - 1) {
+      const nextEl = document.getElementById(`pn-${PHASES[pi+1].n}`);
+      if (nextEl) {
+        const nR   = rr(nextEl);
+        const rowR = rr(rowEl);
+        line(pR.cx, rowR.bottom + 8, nR.cx, nR.top, '#334155', 2, '6,5');
+      }
+    }
+  });
+
+  svg.setAttribute('height', wrapper.scrollHeight);
+}
+
 function highlight(code) {
-  // escape HTML first
   code = code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  // comments
-  code = code.replace(/(\/\/[^\n]*)/g, '<span class="cm">$1</span>');
-  // preprocessor
-  code = code.replace(/^(#\w+)/gm, '<span class="pp">$1</span>');
-  // CUDA qualifiers
-  code = code.replace(/\b(__global__|__device__|__host__|__shared__|__syncthreads|__forceinline__)\b/g,
-                      '<span class="deco">$1</span>');
-  // types
-  code = code.replace(/\b(float|int|unsigned|long|void|bool|char|double|size_t|dim3|cudaError_t)\b/g,
-                      '<span class="ty">$1</span>');
-  // CUDA API
-  code = code.replace(/\b(cudaMalloc|cudaFree|cudaMemcpy|cudaDeviceSynchronize|cudaGetLastError|atomicAdd|blockIdx|threadIdx|blockDim|gridDim)\b/g,
-                      '<span class="fn">$1</span>');
-  // keywords
-  code = code.replace(/\b(if|else|for|while|return|const|static|struct|typedef|do|break|continue|nullptr|NULL)\b/g,
-                      '<span class="kw">$1</span>');
-  // numbers
-  code = code.replace(/\b(\d+\.\d*f?|\d+f?)\b/g, '<span class="nu">$1</span>');
+  code = code.replace(/(\/\/[^\n]*)/g,'<span class="cm">$1</span>');
+  code = code.replace(/^(#\w+)/gm,'<span class="pp">$1</span>');
+  code = code.replace(/\b(__global__|__device__|__host__|__shared__|__syncthreads|__forceinline__)\b/g,'<span class="deco">$1</span>');
+  code = code.replace(/\b(float|int|unsigned|long|void|bool|char|double|size_t|dim3|cudaError_t)\b/g,'<span class="ty">$1</span>');
+  code = code.replace(/\b(cudaMalloc|cudaFree|cudaMemcpy|cudaDeviceSynchronize|cudaGetLastError|atomicAdd|blockIdx|threadIdx|blockDim|gridDim)\b/g,'<span class="fn">$1</span>');
+  code = code.replace(/\b(if|else|for|while|return|const|static|struct|typedef|do|break|continue|nullptr|NULL)\b/g,'<span class="kw">$1</span>');
+  code = code.replace(/\b(\d+\.\d*f?|\d+f?)\b/g,'<span class="nu">$1</span>');
   return code;
 }
 
-// ── Panel logic ──────────────────────────────────────────────────────────────
 function openLesson(slug, chipEl) {
   const lesson = LESSONS[slug];
   if (!lesson) return;
 
-  // deselect previous chip
   if (currentChipEl) currentChipEl.classList.remove('selected');
-  currentSlug  = slug;
+  currentSlug   = slug;
   currentChipEl = chipEl;
   if (chipEl) chipEl.classList.add('selected');
 
-  // fill header
-  document.getElementById('lp-title').textContent      = lesson.title;
-  document.getElementById('lp-section').textContent    = lesson.section;
-  document.getElementById('lp-topic').textContent      = lesson.topic;
+  document.getElementById('lp-title').textContent        = lesson.title;
+  document.getElementById('lp-section').textContent      = lesson.section;
+  document.getElementById('lp-topic').textContent        = lesson.topic;
   document.getElementById('lp-theory-title').textContent = lesson.title;
-  document.getElementById('lp-link').href              = lesson.url;
-  document.getElementById('lp-filename').textContent   = slug + '.cu';
+  document.getElementById('lp-link').href                = lesson.url;
+  document.getElementById('lp-filename').textContent     = slug + '.cu';
 
-  // fill theory — format description with sections
   function formatDescription(text) {
-    // Split into rough sentences / chunks
-    const rawChunks = text
-      .split(/\n{2,}|(?<=[.!?])\s{2,}(?=[A-Z])/)
-      .map(p => p.trim())
-      .filter(p => p.length > 8);
-    // Group into max 4 paragraphs, then classify each chunk
-    const chunks = rawChunks.slice(0, 18);
-    return chunks.map(chunk => {
-      if (/^Definition[:\s]/i.test(chunk)) {
-        return `<div class="def-box">${chunk}</div>`;
-      } else if (/^Example[:\s]/i.test(chunk)) {
-        return `<div class="ex-box">${chunk}</div>`;
-      } else if (chunk.length < 50 && !chunk.endsWith('.') && chunk === chunk.toUpperCase().replace(/[^A-Z\s]/g,'').trim().replace(/\s+/g,' ') + chunk.replace(/[A-Z\s]/g,'')) {
-        return `<div class="section-hdr">${chunk}</div>`;
-      } else {
+    return text.split(/\n{2,}|(?<=[.!?])\s{2,}(?=[A-Z])/)
+      .map(p => p.trim()).filter(p => p.length > 8).slice(0, 18)
+      .map(chunk => {
+        if (/^Definition[:\s]/i.test(chunk)) return `<div class="def-box">${chunk}</div>`;
+        if (/^Example[:\s]/i.test(chunk))    return `<div class="ex-box">${chunk}</div>`;
         return `<p>${chunk}</p>`;
-      }
-    }).join('');
+      }).join('');
   }
   document.getElementById('lp-description').innerHTML = formatDescription(lesson.description);
-
-  // fill code
   document.getElementById('lp-code').innerHTML = highlight(lesson.template);
 
-  // done button
-  const isDone = done.has(slug);
+  const isDone = !!saved[slug];
   const btn = document.getElementById('done-btn');
   btn.textContent = isDone ? '✓ Already Done' : '✓ Mark as Done';
   btn.className   = 'done-btn' + (isDone ? ' already-done' : '');
 
-  // reset copy button
   const copyBtn = document.getElementById('copy-btn');
-  copyBtn.textContent = 'Copy';
-  copyBtn.className   = 'copy-btn';
+  copyBtn.textContent = 'Copy'; copyBtn.className = 'copy-btn';
 
-  // open panel
-  document.getElementById('layout').classList.add('panel-open');
+  document.getElementById('app-body').classList.add('panel-open');
   switchTab('theory');
 
-  // render canvas visualization if available
   const vizCanvas = document.getElementById('viz-canvas');
   if (VISUALIZATIONS && VISUALIZATIONS[slug]) {
     vizCanvas.style.display = 'block';
     const ctx = vizCanvas.getContext('2d');
     ctx.clearRect(0, 0, vizCanvas.width, vizCanvas.height);
-    try {
-      VISUALIZATIONS[slug](vizCanvas, vizCanvas.width, vizCanvas.height, ctx);
-    } catch(e) { console.warn('viz error for', slug, e); }
+    try { VISUALIZATIONS[slug](vizCanvas, vizCanvas.width, vizCanvas.height, ctx); }
+    catch(e) { console.warn('viz error', slug, e); }
   } else {
     vizCanvas.style.display = 'none';
   }
 }
 
 function closePanel() {
-  document.getElementById('layout').classList.remove('panel-open');
+  document.getElementById('app-body').classList.remove('panel-open');
   if (currentChipEl) currentChipEl.classList.remove('selected');
   currentSlug = null; currentChipEl = null;
 }
@@ -2100,34 +2021,30 @@ function switchTab(name) {
 }
 
 function copyCode() {
-  const code = document.getElementById('lp-code').innerText;
-  navigator.clipboard.writeText(code).then(() => {
+  navigator.clipboard.writeText(document.getElementById('lp-code').innerText).then(() => {
     const btn = document.getElementById('copy-btn');
-    btn.textContent = 'Copied!';
-    btn.className   = 'copy-btn copied';
+    btn.textContent = 'Copied!'; btn.className = 'copy-btn copied';
     setTimeout(() => { btn.textContent='Copy'; btn.className='copy-btn'; }, 2000);
   });
 }
 
 function markDone() {
-  if (!currentSlug) return;
-  if (done.has(currentSlug)) return;
-  done.add(currentSlug);
-  saveDone(done);
-  // update button
+  if (!currentSlug || saved[currentSlug]) return;
+  saved[currentSlug] = true;
+  persist();
   const btn = document.getElementById('done-btn');
-  btn.textContent = '✓ Already Done';
-  btn.className   = 'done-btn already-done';
-  // re-render roadmap to update chip color
-  renderRoadmap();
-  // re-select chip
-  const newChip = document.querySelector(`[data-slug="${currentSlug}"]`);
-  if (newChip) { newChip.classList.add('selected'); currentChipEl = newChip; }
+  btn.textContent = '✓ Already Done'; btn.className = 'done-btn already-done';
+  const chip = document.querySelector(`[data-slug="${currentSlug}"]`);
+  if (chip) { chip.classList.add('done'); currentChipEl = chip; }
+  updateProgress();
 }
 
-// ── Init ─────────────────────────────────────────────────────────────────────
 VISUALIZATIONS_PLACEHOLDER
-renderRoadmap();
+render();
+updateProgress();
+requestAnimationFrame(() => requestAnimationFrame(drawLines));
+window.addEventListener('resize', () => requestAnimationFrame(drawLines));
+document.getElementById('lesson-pane').addEventListener('transitionend', drawLines);
 </script>
 </body>
 </html>
